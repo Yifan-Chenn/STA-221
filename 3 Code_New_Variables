@@ -1,0 +1,450 @@
+## 3. Define New Variables
+## The FORMULAS defined in next page
+import pandas as pd
+import numpy as np
+
+data = variable_selection_cleaned
+data.isna().mean().sort_values(ascending=False).max() == 0
+
+# Loop through formulas and compute variables
+# Build all new columns in a dict first
+computed = {}
+computed["STATE"] = data["STATE"]
+
+for var_name, func in FORMULAS.items():
+    try:
+        computed[var_name] = func(data)
+    except Exception as e:
+        print(f"Error in {var_name}: {e}")
+
+# Concatenate all at once (FAST, no fragmentation)
+New_Variables = pd.concat(computed, axis=1)
+
+New_Variables
+New_Variables.to_excel("New_Variables.xlsx", index=True)
+
+
+
+
+def standardize(df, col):
+    return (df[col] - df[col].mean()) / df[col].std()
+FORMULAS = {
+    "ACS_AVG_HH_SIZE": lambda df: df["ACS_AVG_HH_SIZE"],
+
+    "ACS_PCT_AGE_0_17": lambda df: df["ACS_PCT_AGE_0_17"],
+    "ACS_PCT_AGE_18_64": lambda df: df["ACS_PCT_AGE_18_44"] + df["ACS_PCT_AGE_45_64"],
+    "ACS_PCT_AGE_ABOVE65": lambda df: df["ACS_PCT_AGE_ABOVE65"],
+
+    "ACS_PCT_AIAN": lambda df: df["ACS_PCT_AIAN"],
+    "ACS_PCT_ASIAN": lambda df: df["ACS_PCT_ASIAN"],
+    "ACS_PCT_BLACK": lambda df: df["ACS_PCT_BLACK"],
+    "ACS_PCT_MULT_RACE": lambda df: df["ACS_PCT_MULT_RACE"],
+    "ACS_PCT_NHPI": lambda df: df["ACS_PCT_NHPI"],
+    "ACS_PCT_WHITE": lambda df: df["ACS_PCT_WHITE"],
+    "ACS_PCT_OTHER_RACE": lambda df: df["ACS_PCT_OTHER_RACE"],
+
+    "ACS_PCT_ENGL_NOT_WELL": lambda df: df["ACS_PCT_ENGL_NOT_ALL"] + df["ACS_PCT_ENGL_NOT_WELL"],
+
+    "ACS_PCT_FEMALE": lambda df: df["ACS_PCT_FEMALE"],
+    "ACS_PCT_HISPANIC": lambda df: df["ACS_PCT_HISPANIC"],
+    "ACS_PCT_NVR_MARRIED": lambda df: df["ACS_PCT_NVR_MARRIED_F"] + df["ACS_PCT_NVR_MARRIED_M"],
+
+    "ACS_PCT_FOREIGN_BORN": lambda df: df["ACS_PCT_FOREIGN_BORN"],
+    "ACS_PCT_VET": lambda df: df["ACS_PCT_VET"],
+    "ACS_PCT_DISABLE": lambda df: df["ACS_PCT_DISABLE"],
+    "ACS_PCT_CHILD_1FAM": lambda df: df["ACS_PCT_CHILD_1FAM"],
+
+    "ACS_PCT_GRANDP_RESPS": lambda df: df["ACS_PCT_GRANDP_RESPS_NO_P"] + df["ACS_PCT_GRANDP_RESPS_P"],
+    "ACS_PCT_HH_ALONE_ABOVE65": lambda df: df["ACS_PCT_HH_ALONE_ABOVE65"],
+
+    "CHR_SEGREG_NON_WHITE": lambda df: df["CHR_SEGREG_NON_WHITE"],
+
+    "ACS_GINI_INDEX": lambda df: df["ACS_GINI_INDEX"],
+    "ACS_MEDIAN_HH_INC": lambda df: df["ACS_MEDIAN_HH_INC"],
+    "ACS_MEDIAN_INC_F": lambda df: df["ACS_MEDIAN_INC_F"],
+    "ACS_MEDIAN_INC_M": lambda df: df["ACS_MEDIAN_INC_M"],
+
+    "ACS_PCT_HH_INC_low": lambda df: df["ACS_PCT_HH_INC_10000"],
+    "ACS_PCT_HH_INC_median": lambda df: (
+        df["ACS_PCT_HH_INC_14999"]
+        + df["ACS_PCT_HH_INC_24999"]
+        + df["ACS_PCT_HH_INC_49999"]
+        + df["ACS_PCT_HH_INC_99999"]
+    ),
+    "ACS_PCT_HH_INC_high": lambda df: df["ACS_PCT_HH_INC_100000"],
+
+    "ACS_Poverty_Severity_BELOW17": lambda df: (
+        df["ACS_PCT_INC50_BELOW17"] + 0.5 * (1 - df["ACS_PCT_INC50_BELOW17"])
+    ),
+
+    "ACS_PER_CAPITA_INC": lambda df: df["ACS_PER_CAPITA_INC"],
+
+    # Industry classification
+    "ACS_PCT_Primary": lambda df: df["ACS_PCT_NATURE"],
+    "ACS_PCT_Secondary": lambda df: df["ACS_PCT_MANUFACT"],
+    "ACS_PCT_Thirdary": lambda df: (
+        df["ACS_PCT_ADMIN"] + df["ACS_PCT_ARMED_FORCES"] + df["ACS_PCT_ART"] +
+        df["ACS_PCT_CONSTRUCT"] + df["ACS_PCT_EDUC"] + df["ACS_PCT_FINANCE"] +
+        df["ACS_PCT_GOVT"] + df["ACS_PCT_INFORM"] + df["ACS_PCT_OTHER"] +
+        df["ACS_PCT_PROFESS"] + df["ACS_PCT_PVT_NONPROFIT"] + df["ACS_PCT_PVT_PROFIT"] +
+        df["ACS_PCT_RETAIL"] + df["ACS_PCT_TRANSPORT"] + df["ACS_PCT_WHOLESALE"]
+    ),
+
+    "ACS_PCT_WORK_RES_Gender_Diff": lambda df: df["ACS_PCT_WORK_RES_F"] - df["ACS_PCT_WORK_RES_M"],
+
+    "AHRF_UNEMPLOYED_RATE": lambda df: df["AHRF_UNEMPLOYED_RATE"],
+
+    "ACS_PCT_HH_FOOD_STMP": lambda df: df["ACS_PCT_HH_FOOD_STMP"],
+
+    "ACS_Poverty_Severity": lambda df: df["ACS_PCT_INC50"] + 0.5 * (1 - df["ACS_PCT_INC50"]),
+
+    "ACS_PCT_HH_FOOD_STMP_BLW_POV": lambda df: df["ACS_PCT_HH_FOOD_STMP_BLW_POV"],
+
+    "ACS_PCT_LT_HS": lambda df: df["ACS_PCT_LT_HS"],
+    "ACS_PCT_HS_GRADUATE": lambda df: df["ACS_PCT_HS_GRADUATE"],
+    "ACS_PCT_POSTHS_ED": lambda df: df["ACS_PCT_POSTHS_ED"],
+
+    "CRDC_SERVICE_RAT_STUD": lambda df: (
+        df["CRDC_TOT_FTECOUNSELORS"]
+        + df["CRDC_TOT_FTENURSE"]
+        + df["CRDC_TOT_FTEPSY"]
+        + df["CRDC_TOT_FTESOC"]
+    ) / df["CRDC_TOT_STUDENTS"],
+
+    "CRDC_SAFTY_RAT_STUD": lambda df: (
+        df["CRDC_TOT_RAPE_ASSAULT"]
+        + df["CRDC_TOT_FIREARM"]
+    ) / df["CRDC_TOT_STUDENTS"],
+
+    "CRDC_PCT_APEXAM_ONEORMORE": lambda df: df["CRDC_PCT_APEXAM_ONEORMORE"],
+    "CRDC_PCT_CTY_KGTN": lambda df: df["CRDC_PCT_CTY_KGTN"],
+
+    "CRDC_PCT_HBA": lambda df: (
+        df["CRDC_PCT_HBA_DISABLE_STUDENTS"]
+        + df["CRDC_PCT_HBA_RACE_STUDENTS"]
+        + df["CRDC_PCT_HBA_SEX_STUDENTS"]
+    ),
+
+    "CRDC_SCH_AVG_STUD": lambda df: df["CRDC_TOT_STUDENTS"] / df["CRDC_TOT_SCHOOLS"],
+
+    "CCD_TOT_EXPENDITURE": lambda df: df["CCD_TOT_EXPENDITURE"],
+
+    "WUSTL_AVG_PM25": lambda df: df["WUSTL_AVG_PM25"],
+
+    "NOAAS_TOT_DISASTER": lambda df: (
+          df["NOAAS_TOT_DROUGHT"]
+        + df["NOAAS_TOT_FLOOD"]
+        + df["NOAAS_TOT_HAIL"]
+        + df["NOAAS_TOT_HEAT_EVENTS"]
+        + df["NOAAS_TOT_HURRICANE_STORM"]
+        + df["NOAAS_TOT_STORMEVENT"]
+        + df["NOAAS_TOT_TORNADO"]
+        + df["NOAAS_TOT_WILDFIRE"]
+        + df["NOAAS_TOT_WIND"]
+    ),
+
+    "NEPHTN_PCT_ARSENIC_MCL_LESS10": lambda df: df["NEPHTN_PCT_ARSENIC_MCL_LESS10"],
+
+    "AHRF_DAYS_AIR_QLT": lambda df: df["AHRF_DAYS_AIR_QLT"],
+
+    "CHR_PCT_FOOD": lambda df: df["CHR_PCT_FOOD"],
+
+    # Seasonal temperature averages
+    "NOAAC_TEMP_WINTER": lambda df: (
+        df["NOAAC_AVG_TEMP_DEC"]
+        + df["NOAAC_AVG_TEMP_JAN"]
+        + df["NOAAC_AVG_TEMP_FEB"]
+    ) / 3,
+
+    "NOAAC_TEMP_SPRING": lambda df: (
+        df["NOAAC_AVG_TEMP_MAR"]
+        + df["NOAAC_AVG_TEMP_APR"]
+        + df["NOAAC_AVG_TEMP_MAY"]
+    ) / 3,
+
+    "NOAAC_TEMP_SUMMER": lambda df: (
+        df["NOAAC_AVG_TEMP_JUN"]
+        + df["NOAAC_AVG_TEMP_JUL"]
+        + df["NOAAC_AVG_TEMP_AUG"]
+    ) / 3,
+
+    "NOAAC_TEMP_FALL": lambda df: (
+        df["NOAAC_AVG_TEMP_SEP"]
+        + df["NOAAC_AVG_TEMP_OCT"]
+        + df["NOAAC_AVG_TEMP_NOV"]
+    ) / 3,
+
+    # Seasonal precipitation totals
+    "NOAAC_PRECIP_WINTER": lambda df: (
+        df["NOAAC_PRECIPITATION_DEC"]
+        + df["NOAAC_PRECIPITATION_JAN"]
+        + df["NOAAC_PRECIPITATION_FEB"]
+    ),
+
+    "NOAAC_PRECIP_SPRING": lambda df: (
+        df["NOAAC_PRECIPITATION_MAR"]
+        + df["NOAAC_PRECIPITATION_APR"]
+        + df["NOAAC_PRECIPITATION_MAY"]
+    ),
+
+    "NOAAC_PRECIP_SUMMER": lambda df: (
+        df["NOAAC_PRECIPITATION_JUN"]
+        + df["NOAAC_PRECIPITATION_JUL"]
+        + df["NOAAC_PRECIPITATION_AUG"]
+    ),
+
+    "NOAAC_PRECIP_FALL": lambda df: (
+        df["NOAAC_PRECIPITATION_SEP"]
+        + df["NOAAC_PRECIPITATION_OCT"]
+        + df["NOAAC_PRECIPITATION_NOV"]
+    ),
+
+    # Housing cost burden (weighted)
+    "ACS_PCT_HU_COST_30PCT": lambda df: (
+        df["ACS_PCT_OWNER_HU_COST_30PCT"] / 100 * df["ACS_PCT_OWNER_HU"]
+        + df["ACS_PCT_RENTER_HU_COST_30PCT"] / 100 * df["ACS_PCT_RENTER_HU"]
+    ),
+
+    "ACS_PCT_1UP_PERS_1ROOM": lambda df: df["ACS_PCT_1UP_PERS_1ROOM"],
+
+    # Bad housing conditions
+    "ACS_PCT_HU_BAD": lambda df: (
+        df["ACS_PCT_HU_KITCHEN"]
+        + df["ACS_PCT_HU_MOBILE_HOME"]
+        + df["ACS_PCT_HU_PLUMBING"]
+    ),
+
+    # Clean household fuel use
+    "ACS_PCT_HU_CLEAN_FUEL": lambda df: (
+        df["ACS_PCT_HU_ELEC"]
+        + df["ACS_PCT_HU_SOLAR"]
+        + df["ACS_PCT_HU_UTILITY_GAS"]
+    ),
+
+    "CCBP_BWLSTORES_RATE": lambda df: df["CCBP_BWLSTORES_RATE"],
+    "CCBP_GAMBLING_RATE": lambda df: df["CCBP_GAMBLING_RATE"],
+
+    # Migration indicators
+    "ACS_PCT_Migration": lambda df: (
+        df["ACS_PCT_DIF_STATE"]
+        + df["ACS_PCT_IN_COUNTY_MOVE"]
+        + df["ACS_PCT_IN_STATE_MOVE"]
+    ),
+    
+    "ACS_PCT_HU_NO_VEH": lambda df: df["ACS_PCT_HU_NO_VEH"],
+    "ACS_PCT_COMMT_60MINUP": lambda df: df["ACS_PCT_COMMT_60MINUP"],
+    "ACS_PCT_PUBL_TRANSIT": lambda df: df["ACS_PCT_PUBL_TRANSIT"],
+
+    # AHA hospital index (simple average)
+    "AHA_HHI_SHRTTRM_ACUTE": lambda df: (
+        df["AHA_HHI_SHRTTRM_ACUTE_ADMSN_CTY"]
+        + df["AHA_HHI_SHRTTRM_ACUTE_DSCHR_CTY"]
+        + df["AHA_HHI_SHRTTRM_ACUTE_LOS_CTY"]
+    ) / 3,
+
+    "HRSA_MUA_COUNTY": lambda df: df["HRSA_MUA_COUNTY"],
+
+    # Home health agencies (average of 6 subtypes)
+    "HHC_PCT_HHA": lambda df: (
+        df["HHC_PCT_HHA_AIDE"]
+        + df["HHC_PCT_HHA_MEDICAL"]
+        + df["HHC_PCT_HHA_NURSING"]
+        + df["HHC_PCT_HHA_OCC_THERAPY"]
+        + df["HHC_PCT_HHA_PHYS_THERAPY"]
+        + df["HHC_PCT_HHA_SPEECH"]
+    ) / 6,
+
+    "AHRF_HPSA_DENTIST": lambda df: df["AHRF_HPSA_DENTIST"],
+    "AHRF_HPSA_MENTAL": lambda df: df["AHRF_HPSA_MENTAL"],
+    "AHRF_HPSA_PRIM": lambda df: df["AHRF_HPSA_PRIM"],
+
+    # Mental health workforce composite (z-scores)
+    "MENTAL_HEALTH_WORKFORCE": lambda df: (
+        standardize(df, "AHRF_CHLD_PSYCH_RATE")
+        + standardize(df, "AHRF_PSYCH_RATE")
+        + standardize(df, "CHR_MENTAL_PROV_RATE")
+    ) / 3,
+
+    # Primary care provider composite (z-scores)
+    "PRIMARY_CARE_PROVIDER": lambda df: (
+        standardize(df, "AHRF_MDS_RATE")
+        + standardize(df, "AHRF_NURSE_PRACT_RATE")
+        + standardize(df, "AHRF_PHYS_PRIMARY_RATE")
+    ) / 3,
+
+    "PC_PCT_MEDICARE_APPRVD_FULL_AMT": lambda df: df["PC_PCT_MEDICARE_APPRVD_FULL_AMT"],
+    "NHC_AVG_ADJ_NURSE_STAFF": lambda df: df["NHC_AVG_ADJ_NURSE_STAFF"],
+    "NHC_AVG_LIC_STAFF": lambda df: df["NHC_AVG_LIC_STAFF"],
+
+    # CDCP preventive care indicators
+    "CDCP_CERVCAN_SCR_F21_65_A": lambda df: df["CDCP_CERVCAN_SCR_F21_65_A"],
+    "CDCP_DENTIST_VISIT_ADULT_A": lambda df: df["CDCP_DENTIST_VISIT_ADULT_A"],
+    "CDCP_DOCTOR_VISIT_ADULT_A": lambda df: df["CDCP_DOCTOR_VISIT_ADULT_A"],
+    "CDCP_FOBT_SIG_COL_50_75_A": lambda df: df["CDCP_FOBT_SIG_COL_50_75_A"],
+    "CDCP_MAMMO_SCR_F50_74_A": lambda df: df["CDCP_MAMMO_SCR_F50_74_A"],
+    "CDCP_NO_PHY_ACTV_ADULT_A": lambda df: df["CDCP_NO_PHY_ACTV_ADULT_A"],
+    "CDCP_PREV_SERV_F65_ABOVE_A": lambda df: df["CDCP_PREV_SERV_F65_ABOVE_A"],
+    "CDCP_PREV_SERV_M65_ABOVE_A": lambda df: df["CDCP_PREV_SERV_M65_ABOVE_A"],
+    "CDCP_SLEEP_LESS7HR_ADULT_A": lambda df: df["CDCP_SLEEP_LESS7HR_ADULT_A"],
+
+    "CHR_PCT_EXCESS_DRINK": lambda df: df["CHR_PCT_EXCESS_DRINK"],
+    "CHR_PCT_SMOKING": lambda df: df["CHR_PCT_SMOKING"],
+
+    # LTC (long-term care) indicators
+    "LTC_AVG_OBS_MEDIAN_LOS": lambda df: df["LTC_AVG_OBS_MEDIAN_LOS"],
+    "LTC_AVG_OBS_REHOSP_RATE": lambda df: df["LTC_AVG_OBS_REHOSP_RATE"],
+    "LTC_AVG_OBS_SUCCESSFUL_DISC_RATE": lambda df: df["LTC_AVG_OBS_SUCCESSFUL_DISC_RATE"],
+
+    # Insurance coverage
+    "ACS_PCT_MEDICAID_ANY": lambda df: df["ACS_PCT_MEDICAID_ANY"],
+    "ACS_PCT_MEDICARE_ONLY": lambda df: df["ACS_PCT_MEDICARE_ONLY"],
+    "ACS_PCT_OTHER_INS": lambda df: df["ACS_PCT_OTHER_INS"],
+    "ACS_PCT_PRIVATE_SELF": lambda df: df["ACS_PCT_PRIVATE_SELF"],
+    "ACS_PCT_PRIVATE_EMPL": lambda df: df["ACS_PCT_PRIVATE_EMPL"],
+    "ACS_PCT_PRIVATE_MDCR": lambda df: df["ACS_PCT_PRIVATE_MDCR"],
+    "ACS_PCT_TRICARE_VA": lambda df: df["ACS_PCT_TRICARE_VA"],
+    "ACS_PCT_UNINSURED": lambda df: df["ACS_PCT_UNINSURED"],
+
+    # Health spending & productivity
+    "AHRF_PCT_PRESC_PEN": lambda df: df["AHRF_PCT_PRESC_PEN"],
+    "MGV_PCT_MEDICAID": lambda df: df["MGV_PCT_MEDICAID"],
+    "MP_PCT_ADVTG_PEN": lambda df: df["MP_PCT_ADVTG_PEN"],
+    "AHRF_PREV_HOSP_RATE": lambda df: df["AHRF_PREV_HOSP_RATE"],
+
+    "MGV_PER_CAPITA_STD_EM": lambda df: df["MGV_PER_CAPITA_STD_EM"],
+    "MGV_PER_CAPITA_STD_HC": lambda df: df["MGV_PER_CAPITA_STD_HC"],
+    "MGV_PER_CAPITA_STD_IP": lambda df: df["MGV_PER_CAPITA_STD_IP"],
+    "MGV_PER_CAPITA_STD_OP": lambda df: df["MGV_PER_CAPITA_STD_OP"],
+    "MGV_PER_CAPITA_STD_PA": lambda df: df["MGV_PER_CAPITA_STD_PA"],
+
+    "AHRF_IP_DAY_NH_HOSP_RATE": lambda df: df["AHRF_IP_DAY_NH_HOSP_RATE"],
+    "LTC_AVG_PCT_MEDICAID": lambda df: df["LTC_AVG_PCT_MEDICAID"],
+    "LTC_AVG_PCT_MEDICARE": lambda df: df["LTC_AVG_PCT_MEDICARE"],
+    "LTC_OCCUPANCY_RATE": lambda df: df["LTC_OCCUPANCY_RATE"],
+    "LTC_AVG_AGE": lambda df: df["LTC_AVG_AGE"],
+    "LTC_AVG_PCT_PRESSURE_ULCER": lambda df: df["LTC_AVG_PCT_PRESSURE_ULCER"],
+
+    "CEN_AREALAND_SQM_COUNTY": lambda df: df["CEN_AREALAND_SQM_COUNTY"],
+    "CEN_POPDENSITY_COUNTY": lambda df: df["CEN_POPDENSITY_COUNTY"],
+    "NCHS_URCS_2013": lambda df: df["NCHS_URCS_2013"],
+    
+    # Structural Capacity Indicators for PCA 1
+    "AHRF_CARDIAC_IC_BEDS_RATE": lambda df: df["AHRF_CARDIAC_IC_BEDS_RATE"],
+    "AHRF_COM_HEALTH_GRANT_RATE": lambda df: df["AHRF_COM_HEALTH_GRANT_RATE"],
+    "AHRF_HOSPS_RATE": lambda df: df["AHRF_HOSPS_RATE"],
+    "AHRF_HOSP_BEDS_LT_RATE": lambda df: df["AHRF_HOSP_BEDS_LT_RATE"],
+    "AHRF_HOSP_BED_RATE": lambda df: df["AHRF_HOSP_BED_RATE"],
+    "AHRF_HOSP_MOBILE_RATE": lambda df: df["AHRF_HOSP_MOBILE_RATE"],
+    "AHRF_HOSP_TELE_ICU_RATE": lambda df: df["AHRF_HOSP_TELE_ICU_RATE"],
+    "AHRF_HOSP_TELE_STROKE_RATE": lambda df: df["AHRF_HOSP_TELE_STROKE_RATE"],
+    "AHRF_LT_HOSP_RATE": lambda df: df["AHRF_LT_HOSP_RATE"],
+    "AHRF_MEDSURGIC_BEDS_RATE": lambda df: df["AHRF_MEDSURGIC_BEDS_RATE"],
+    "AHRF_MEDSURGIC_HOSP_RATE": lambda df: df["AHRF_MEDSURGIC_HOSP_RATE"],
+    "AHRF_NEONATALIC_BEDS_RATE": lambda df: df["AHRF_NEONATALIC_BEDS_RATE"],
+    "AHRF_NEONATALIC_HOSP_RATE": lambda df: df["AHRF_NEONATALIC_HOSP_RATE"],
+    "AHRF_NHSC_ACTIVE_RATE": lambda df: df["AHRF_NHSC_ACTIVE_RATE"],
+    "AHRF_NHSC_FTE_PROV_RATE": lambda df: df["AHRF_NHSC_FTE_PROV_RATE"],
+    "AHRF_OPRT_ROOM_RATE": lambda df: df["AHRF_OPRT_ROOM_RATE"],
+    "AHRF_RURL_REFRRL_CNT_RATE": lambda df: df["AHRF_RURL_REFRRL_CNT_RATE"],
+    "AHRF_ST_COMM_HOSP_RATE": lambda df: df["AHRF_ST_COMM_HOSP_RATE"],
+    "AHRF_ST_G_HOSP_BED_RATE": lambda df: df["AHRF_ST_G_HOSP_BED_RATE"],
+    "AHRF_ST_G_HOSP_RATE": lambda df: df["AHRF_ST_G_HOSP_RATE"],
+    "AHRF_ST_N_G_HOSP_RATE": lambda df: df["AHRF_ST_N_G_HOSP_RATE"],
+    "AMFAR_HCVTFAC_RATE": lambda df: df["AMFAR_HCVTFAC_RATE"],
+    "AMFAR_HIVTFAC_RATE": lambda df: df["AMFAR_HIVTFAC_RATE"],
+    "AMFAR_RWFAC_RATE": lambda df: df["AMFAR_RWFAC_RATE"],
+    "LTC_TOT_BEDS_RATE": lambda df: df["LTC_TOT_BEDS_RATE"],
+    "POS_ASC_RATE": lambda df: df["POS_ASC_RATE"],
+    "POS_CMHC_RATE": lambda df: df["POS_CMHC_RATE"],
+    "POS_FQHC_RATE": lambda df: df["POS_FQHC_RATE"],
+    "POS_HHA_RATE": lambda df: df["POS_HHA_RATE"],
+    "POS_HOSPICE_RATE": lambda df: df["POS_HOSPICE_RATE"],
+    "POS_HOSP_ALC_RATE": lambda df: df["POS_HOSP_ALC_RATE"],
+    "POS_HOSP_AMBULANCE_RATE": lambda df: df["POS_HOSP_AMBULANCE_RATE"],
+    "POS_HOSP_BURN_RATE": lambda df: df["POS_HOSP_BURN_RATE"],
+    "POS_HOSP_CHEMO_RATE": lambda df: df["POS_HOSP_CHEMO_RATE"],
+    "POS_HOSP_ED_RATE": lambda df: df["POS_HOSP_ED_RATE"],
+    "POS_HOSP_MEDSURG_ICU_RATE": lambda df: df["POS_HOSP_MEDSURG_ICU_RATE"],
+    "POS_HOSP_OBSTETRIC_RATE": lambda df: df["POS_HOSP_OBSTETRIC_RATE"],
+    "POS_HOSP_PED_ICU_RATE": lambda df: df["POS_HOSP_PED_ICU_RATE"],
+    "POS_HOSP_PSYCH_RATE": lambda df: df["POS_HOSP_PSYCH_RATE"],
+    "POS_HOSP_REHAB_RATE": lambda df: df["POS_HOSP_REHAB_RATE"],
+    "POS_NF_BEDS_RATE": lambda df: df["POS_NF_BEDS_RATE"],
+    "POS_NF_RATE": lambda df: df["POS_NF_RATE"],
+    "POS_RHC_RATE": lambda df: df["POS_RHC_RATE"],
+    "POS_SNF_BEDS_RATE": lambda df: df["POS_SNF_BEDS_RATE"],
+    "POS_SNF_RATE": lambda df: df["POS_SNF_RATE"],
+
+    # Distance Metrics for PCA 2
+    "AMFAR_AVG_DISTSSP": lambda df: df["AMFAR_AVG_DISTSSP"],
+    "POS_MEAN_DIST_ALC": lambda df: df["POS_MEAN_DIST_ALC"],
+    "POS_MEAN_DIST_CLINIC": lambda df: df["POS_MEAN_DIST_CLINIC"],
+    "POS_MEAN_DIST_ED": lambda df: df["POS_MEAN_DIST_ED"],
+    "POS_MEAN_DIST_MEDSURG_ICU": lambda df: df["POS_MEAN_DIST_MEDSURG_ICU"],
+    "POS_MEAN_DIST_OBSTETRICS": lambda df: df["POS_MEAN_DIST_OBSTETRICS"],
+    "POS_MEAN_DIST_PED_ICU": lambda df: df["POS_MEAN_DIST_PED_ICU"],
+    "POS_MEAN_DIST_TRAUMA": lambda df: df["POS_MEAN_DIST_TRAUMA"],
+
+    # Provider Specialty Workforce for PCA 3
+    "AHRF_ADV_NURSES_RATE": lambda df: df["AHRF_ADV_NURSES_RATE"],
+    "AHRF_ALLERGY_IMM_RATE": lambda df: df["AHRF_ALLERGY_IMM_RATE"],
+    "AHRF_ANESTH_RATE": lambda df: df["AHRF_ANESTH_RATE"],
+    "AHRF_CARDIOVAS_SPEC_RATE": lambda df: df["AHRF_CARDIOVAS_SPEC_RATE"],
+    "AHRF_CLIN_NURSE_SPEC_RATE": lambda df: df["AHRF_CLIN_NURSE_SPEC_RATE"],
+    "AHRF_COLON_SRG_RATE": lambda df: df["AHRF_COLON_SRG_RATE"],
+    "AHRF_DENTISTS_RATE": lambda df: df["AHRF_DENTISTS_RATE"],
+    "AHRF_DERMATOLOGY_RATE": lambda df: df["AHRF_DERMATOLOGY_RATE"],
+    "AHRF_ER_MED_RATE": lambda df: df["AHRF_ER_MED_RATE"],
+    "AHRF_GASTROENTEROLOGY_RATE": lambda df: df["AHRF_GASTROENTEROLOGY_RATE"],
+    "AHRF_GENRL_SURG_RATE": lambda df: df["AHRF_GENRL_SURG_RATE"],
+    "AHRF_GEN_INTERNAL_MED_RATE": lambda df: df["AHRF_GEN_INTERNAL_MED_RATE"],
+    "AHRF_GEN_PREV_RATE": lambda df: df["AHRF_GEN_PREV_RATE"],
+    "AHRF_MED_SPEC_RATE": lambda df: df["AHRF_MED_SPEC_RATE"],
+    "AHRF_NEUROLOGICAL_SURG_RATE": lambda df: df["AHRF_NEUROLOGICAL_SURG_RATE"],
+    "AHRF_NURSE_ANESTH_RATE": lambda df: df["AHRF_NURSE_ANESTH_RATE"],
+    "AHRF_NURSE_MIDWIVES_RATE": lambda df: df["AHRF_NURSE_MIDWIVES_RATE"],
+    "AHRF_OB_GYN_RATE": lambda df: df["AHRF_OB_GYN_RATE"],
+    "AHRF_OPHTHALMOLOGY_RATE": lambda df: df["AHRF_OPHTHALMOLOGY_RATE"],
+    "AHRF_ORTH_SURG_RATE": lambda df: df["AHRF_ORTH_SURG_RATE"],
+    "AHRF_OTHER_SPEC_RATE": lambda df: df["AHRF_OTHER_SPEC_RATE"],
+    "AHRF_OTOLARYNGOLOGY_RATE": lambda df: df["AHRF_OTOLARYNGOLOGY_RATE"],
+    "AHRF_PEDIATRICS_RATE": lambda df: df["AHRF_PEDIATRICS_RATE"],
+    "AHRF_PLASTIC_SURG_RATE": lambda df: df["AHRF_PLASTIC_SURG_RATE"],
+    "AHRF_PULMONARY_SPEC_RATE": lambda df: df["AHRF_PULMONARY_SPEC_RATE"],
+    "AHRF_RADI_RATE": lambda df: df["AHRF_RADI_RATE"],
+    "AHRF_SURG_SPECS_RATE": lambda df: df["AHRF_SURG_SPECS_RATE"],
+    "AHRF_THORACIC_SURG_RATE": lambda df: df["AHRF_THORACIC_SURG_RATE"],
+    "AHRF_UROL_RATE": lambda df: df["AHRF_UROL_RATE"],
+    
+     # CHR Health Outcomes
+    "CHR_AVG_LIFE_EXPEC": lambda df: df["CHR_AVG_LIFE_EXPEC"],
+    "CHR_PREMAT_DEATH_RATE": lambda df: df["CHR_PREMAT_DEATH_RATE"],
+    "CHR_PCT_POOR_HEALTH": lambda df: df["CHR_PCT_POOR_HEALTH"],
+    "CHR_PCT_MENTAL_DISTRESS": lambda df: df["CHR_PCT_MENTAL_DISTRESS"],
+    "CHR_PCT_PHYSICAL_DISTRESS": lambda df: df["CHR_PCT_PHYSICAL_DISTRESS"],
+
+    # CDC USCS Mortality
+    "CDC_USCS_AGE_ADJ_MORT_RATE": lambda df: df["CDC_USCS_AGE_ADJ_MORT_RATE"],
+
+    # CDC Heart & Stroke (CDCA)
+    "CDCA_HEART_DTH_RATE_ABOVE35": lambda df: df["CDCA_HEART_DTH_RATE_ABOVE35"],
+    "CDCA_STROKE_DTH_RATE_ABOVE35": lambda df: df["CDCA_STROKE_DTH_RATE_ABOVE35"],
+
+    # CDCP chronic disease
+    "CDCP_PULMONARY_ADULT_A": lambda df: df["CDCP_PULMONARY_ADULT_A"],
+
+    # CDCA Prevention (STI)
+    "CDCAP_CHLAMYDIA_RATE": lambda df: df["CDCAP_CHLAMYDIA_RATE"],
+    "CDCAP_GONORRHEA_RATE": lambda df: df["CDCAP_GONORRHEA_RATE"],
+    "CDCAP_HIVDIAG_RATE_ABOVE13": lambda df: df["CDCAP_HIVDIAG_RATE_ABOVE13"],
+    "CDCAP_SYPHILIS_RATE": lambda df: df["CDCAP_SYPHILIS_RATE"],
+
+    # CHR maternal & infant health
+    "CHR_TEEN_BIRTH_RATE_15_19": lambda df: df["CHR_TEEN_BIRTH_RATE_15_19"],
+    "CHR_PCT_LOW_BIRTH_WT": lambda df: df["CHR_PCT_LOW_BIRTH_WT"],
+
+    # CDCW mortality
+    "CDCW_SELFHARM_DTH_RATE": lambda df: df["CDCW_SELFHARM_DTH_RATE"],
+    
+    "PCT_ADULT_OBESITY": lambda df: df["PCT_ADULT_OBESITY"]
+}
