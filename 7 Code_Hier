@@ -1,0 +1,394 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import fcluster
+from scipy.cluster.hierarchy import dendrogram
+from scipy.cluster.hierarchy import inconsistent
+from scipy.cluster.hierarchy import cophenet
+
+from scipy.spatial.distance import cdist
+from scipy.spatial.distance import pdist
+from scipy.spatial.distance import squareform
+from scipy.stats import ks_2samp
+
+from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score
+from sklearn.metrics import silhouette_score
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.metrics import pairwise_distances
+
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+# load cleaned pca data
+df = pd.read_excel("Final_Variables.xlsx", index_col="FIPS")
+
+df.describe()
+
+sorted_col = [
+'Demographics_PPCA1', 'Demographics_PPCA2', 'Demographics_PPCA3',
+'Demographics_PPCA4', 'Demographics_PPCA5', 
+'FAMILY_HARDSHIP_PPCA1','FAMILY_HARDSHIP_PPCA2', 
+'Income_Poverty_PPCA1','Income_Poverty_PPCA2', 
+'Employment_PPCA1', 'Employment_PPCA2',
+'Education_PPCA1', 'Education_PPCA2', 'Education_PPCA3',
+'Immigration_Language_PPCA1', 
+'HOUSING_PPCA1', 'HOUSING_PPCA2',
+'TRANSPORT_PPCA1', 
+'Environment_PPCA1','Environment_PPCA2', 'Environment_PPCA3', 
+'Geography_PPCA1',
+
+'HEALTHCARE_SHORTAGE_PPCA1',
+'Healthcare_HHI', 'Healthcare_HHA', 
+'Healthcare_MENTAL_HEALTH',
+'Healthcare_PRIMARY_CARE', 
+'Healthcare_NURSE_STAFF',
+
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA1',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA2',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA3',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA4',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA5',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA6',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA7',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA8',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA9',
+'HEALTHCARE_STRUCTURAL_PROVIDER_PPCA10',
+    
+'HEALTHCARE_PROVIDER_SPECIALTY_PPCA1',
+'HEALTHCARE_PROVIDER_SPECIALTY_PPCA2',
+'HEALTHCARE_DISTANCE_METRIC_PPCA1', 'HEALTHCARE_DISTANCE_METRIC_PPCA2',
+'HEALTHCARE_INSURANCE_PPCA1', 'HEALTHCARE_INSURANCE_PPCA2',
+'HEALTHCARE_INSURANCE_PPCA3', 'HEALTHCARE_INSURANCE_PPCA4',
+'HEALTHCARE_UTIL_COST_PPCA1', 'HEALTHCARE_UTIL_COST_PPCA2',
+'HEALTHCARE_UTIL_COST_PPCA3', 'LTC_QUALITY_PPCA1', 'LTC_QUALITY_PPCA2',
+'LTC_QUALITY_PPCA3', 'HEALTH_BEH_EXAM_PPCA1', 'HEALTH_BEH_EXAM_PPCA2',
+'HEALTH_BEH_BAD_PPCA1', 'HEALTH_BEH_BAD_PPCA2', 'HealthOutcomes_PPCA1',
+'Chronic_PPCA1', 'Infectious_PPCA1', 'MaternalChild']
+
+df = df[sorted_col]
+X = df.values
+
+# comparing different k
+# dendrogram
+H = 0.93
+plt.figure(figsize=(12, 6))
+dendrogram(Z, color_threshold=None)
+plt.axhline(y=H, color='r') # 手动加线
+plt.show()
+
+# KS similarity
+Z = linkage(pdist(X, metric="correlation"), method="average")
+merge_heights = Z[:, 2]
+
+k = 6
+labels_hier = fcluster(Z, t=k, criterion='maxclust')  
+df["HierCluster"] = labels_hier
+df["HierCluster"].value_counts()
+
+def cluster_similarity_by_ks(df, cluster_col, feature_cols):
+    clusters = sorted(df[cluster_col].unique())
+    results = []
+
+    for i in range(len(clusters)):
+        for j in range(i+1, len(clusters)):
+            c1, c2 = clusters[i], clusters[j]
+
+            df1 = df[df[cluster_col] == c1]
+            df2 = df[df[cluster_col] == c2]
+
+            p_values = []
+            for f in feature_cols:
+                # KS test
+                stat, p = ks_2samp(df1[f], df2[f], alternative='two-sided')
+                p_values.append(p)
+
+            p_values = np.array(p_values)
+
+            # % of variables with no significant difference
+            similarity = np.mean(p_values > 0.05)
+
+            results.append({
+                "Cluster1": c1,
+                "Cluster2": c2,
+                "Similarity(%)": round(similarity*100, 2),
+                "Num_vars": len(feature_cols),
+                "Num_similar_vars": int(np.sum(p_values > 0.05))
+            })
+
+    return pd.DataFrame(results)
+
+# Example
+ks_table = cluster_similarity_by_ks(df, "HierCluster", sorted_col)
+ks_table.to_excel("HierCluster_KStest.xlsx")
+
+
+# two-level clustering
+Z = linkage(pdist(X, metric="correlation"), method="average")
+merge_heights = Z[:, 2]
+
+k = 3
+labels_hier = fcluster(Z, t=k, criterion='maxclust')  # 直接要 6 个 cluster
+df["HierCluster-3"] = labels_hier
+df["HierCluster-3"].value_counts()
+
+Z = linkage(pdist(X, metric="correlation"), method="average")
+merge_heights = Z[:, 2]
+
+k = 6
+labels_hier = fcluster(Z, t=k, criterion='maxclust')  # 直接要 6 个 cluster
+df["HierCluster"] = labels_hier
+df["HierCluster"].value_counts()
+
+
+# result label
+df.to_excel("HierCluster_result.xlsx")
+
+# summary stat
+
+cluster_summary = (df.groupby("HierCluster")[sorted_col]
+            .agg(["mean","median", "std"]))
+cluster_summary.index.name = "HierCluster"
+
+hier_centers = df.groupby("HierCluster")[sorted_col].mean()
+hier_centers.to_excel("HierCluster_centers_mean.xlsx")
+
+hier_centers = df.groupby("HierCluster")[sorted_col].std()
+hier_centers.to_excel("HierCluster_centers_std.xlsx")
+
+hier_centers = df.groupby("HierCluster")[sorted_col].median()
+hier_centers.to_excel("HierCluster_centers_median.xlsx")
+
+
+summary_vars = ["HEALTHCARE_PROVIDER_SPECIALTY_PPCA1",
+                "Education_PPCA1",
+                "HealthOutcomes_PPCA1",
+                "HEALTHCARE_STRUCTURAL_PROVIDER_PPCA1",
+                "HEALTH_BEH_BAD_PPCA1"]
+
+top20_vars = ["HEALTHCARE_PROVIDER_SPECIALTY_PPCA1",
+              "Education_PPCA1",
+              "HealthOutcomes_PPCA1",
+              "HEALTHCARE_STRUCTURAL_PROVIDER_PPCA1",
+              "HEALTH_BEH_BAD_PPCA1",
+              "HOUSING_PPCA2",
+              "Income_Poverty_PPCA1",
+              "MaternalChild",
+              "Chronic_PPCA1",
+              "Healthcare_MENTAL_HEALTH",
+              "HEALTH_BEH_EXAM_PPCA1",
+              "Geography_PPCA1",
+              "Demographics_PPCA1",
+              "HOUSING_PPCA1",
+              "HEALTHCARE_INSURANCE_PPCA1",
+              "Environment_PPCA1",
+              "Employment_PPCA1",
+              "HEALTHCARE_UTIL_COST_PPCA1",
+              "HEALTHCARE_DISTANCE_METRIC_PPCA1",
+              "Infectious_PPCA1"]
+
+
+cluster_summary.to_excel("HierCluster_stat_top5.xlsx")
+
+# var decomposition
+def compute_variance_decomposition(df, cluster_col="HierCluster"):
+    """
+    Compute total, within-cluster, and between-cluster variance 
+    df: dataframe containing variables + cluster labels
+    cluster_col: name of cluster label column
+    """
+    variables = df.columns.drop(cluster_col)
+    results = []
+
+    for var in variables:
+        x = df[var]
+        overall_mean = x.mean()
+        
+        # Total variance
+        total_var = x.var(ddof=1)
+
+        # Within-cluster variance
+        within_var = 0
+        n_total = len(df)
+
+        for k, group in df.groupby(cluster_col):
+            n_k = len(group)
+            var_k = group[var].var(ddof=1)
+            within_var += (n_k / n_total) * var_k   # weighted within variance
+
+        # Between-cluster variance
+        between_var = total_var - within_var
+
+        results.append({
+            "Variable": var,
+            "TotalVariance": total_var,
+            "WithinVariance": within_var,
+            "BetweenVariance": between_var,
+            "Within/Total": within_var / total_var if total_var != 0 else np.nan,
+            "Between/Total": between_var / total_var if total_var != 0 else np.nan
+        })
+
+    return pd.DataFrame(results).sort_values("Between/Total", ascending=False)
+
+
+variance_table = compute_variance_decomposition(df, cluster_col="HierCluster")
+variance_table.sort_values("Within/Total", ascending=True).to_excel("HierCluster_var.xlsx")
+
+R2_cluster = variance_table["BetweenVariance"].sum() / variance_table["TotalVariance"].sum()
+R2_cluster
+
+# pseudo medoids
+dist_matrix = pairwise_distances(X, metric='correlation')
+row_map = {row_id: i for i, row_id in enumerate(df.index.to_list())}
+
+medoids = {}
+
+for k in sorted(df["HierCluster"].unique()):
+    fips_list = df[df["HierCluster"] == k].index.to_list()
+    row_list = [row_map[f] for f in fips_list]
+    
+    subdist = dist_matrix[np.ix_(row_list, row_list)]
+    medoid_pos = subdist.mean(axis=1).argmin()
+    
+    medoids[k] = fips_list[medoid_pos]
+
+# results
+
+
+
+
+# validation
+# plot
+# pca scatter
+
+from scipy.spatial import ConvexHull
+from sklearn.decomposition import PCA
+
+cluster_labels = df["HierCluster"]
+# .map({1:"A", 2:"B", 3:"C"})
+
+X_plot = df.copy().drop(columns=["HierCluster","HierCluster-3"])
+
+# PCA to 2 components
+pca = PCA(n_components=3)
+pca_proj = pca.fit_transform(X_plot)
+df["PC1"] = pca_proj[:, 0]
+df["PC2"] = pca_proj[:, 1]
+
+colors_L6 = {
+    2: "#82B0D2",  # L3-A main
+    1: "#2878b5",  # L3-A split
+    3: "#f8ac8c",  # L3-B main
+    4: "#c82423",  # L3-B split
+    6: "#8ECFC9",  # L3-C main
+    5: "#006400",  # L3-C split
+}
+
+plt.figure(figsize=(10, 8))
+# scatter
+sns.scatterplot(
+    x="PC1", y="PC2",
+    hue="HierCluster", palette=colors_L6,
+    data=df, s=18, alpha=0.75, linewidth=0
+)
+
+# medoid points
+for cid, fips in medoids.items():
+    row = df[df.index == fips]
+    if len(row) == 1:
+        x, y = row["PC2"].values[0], row["PC3"].values[0]
+        plt.scatter(x, y, color="black", marker="x", s=120, linewidth=2)
+        
+        plt.text(x + 0.3, y + 0.3,f"Medoid {cid}",fontsize=10, weight="bold",color="black")
+
+plt.title("Hierarchical Clustering: PCA Projection with Medoids")
+plt.xlabel("PCA Component 1")
+plt.ylabel("PCA Component 2")
+plt.legend(title="Cluster", bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.tight_layout()
+plt.show()
+
+
+# mean of within cluster comparison 
+selected_vars = ["HEALTHCARE_PROVIDER_SPECIALTY_PPCA1",
+                "Education_PPCA1",
+                "HealthOutcomes_PPCA1",
+                "HEALTHCARE_STRUCTURAL_PROVIDER_PPCA1",
+                "HEALTH_BEH_BAD_PPCA1"]
+
+df["HierCluster-3"] = df["HierCluster-3"].map({1:"A", 2:"B", 3:"C"})
+cluster_means = df.groupby("HierCluster-3")[selected_vars].mean()
+
+ax = cluster_means.T.plot(kind='bar', figsize=(10,6))
+plt.title("Hierarchical Clustering: Cluster-wise Means of Main Contributors")
+plt.xlabel("Variable")
+plt.ylabel("Mean")
+
+wrapped_labels = ['\n'.join(label.split('_')) for label in cluster_means.T.index]
+
+plt.xticks(ticks=range(len(wrapped_labels)), labels=wrapped_labels, rotation=0)
+plt.legend(title="Cluster")
+plt.tight_layout()
+plt.show()
+
+
+# tukey test
+results = []
+
+for col in top20_vars:
+    df_tmp = df[[col, "HierCluster"]].dropna()
+
+    # anova
+    model = ols(f"{col} ~ C(HierCluster)", data=df_tmp).fit()
+    anova_table = sm.stats.anova_lm(model, typ=2)
+
+    SSB = anova_table.loc["C(HierCluster)", "sum_sq"]
+    SSW = anova_table.loc["Residual", "sum_sq"]
+
+    tukey = pairwise_tukeyhsd(df_tmp[col], df_tmp["HierCluster"], alpha=0.05)
+    tukey_df = pd.DataFrame(tukey._results_table.data[1:], columns=tukey._results_table.data[0])
+    tukey_df.columns = tukey_df.columns.str.strip().str.lower()
+    reject_col = [c for c in tukey_df.columns if "reject" in c][0]
+    tukey_df["significant"] = tukey_df[reject_col].astype(bool)
+    sig_prop = tukey_df["significant"].mean()
+
+    results.append({
+        "Variable": col,
+        "Eta_Squared": eta2,
+        "SSB": SSB,
+        "SSW": SSW,
+        "Tukey_Significant_Count": tukey_df["significant"].sum(),
+        "Tukey_Total_Pairs": len(tukey_df),
+        "Tukey_Significant_Proportion": sig_prop
+    })
+
+results_df = pd.DataFrame(results)
+results_df
+
+
+# kernel distribution plot
+var = "HEALTHCARE_PROVIDER_SPECIALTY_PPCA1"  
+
+colors_L6 = {
+    2: "#82B0D2",  # L3-A main
+    1: "#2878b5",  # L3-A split
+    3: "#f8ac8c",  # L3-B main
+    4: "#c82423",  # L3-B split
+    6: "#8ECFC9",  # L3-C main
+    5: "#006400",  # L3-C split
+}
+
+plt.figure(figsize=(8,5))
+for k in sorted(df["HierCluster"].astype(int).unique()):
+    sns.kdeplot(df[df["HierCluster"]==k][var], fill=False, linewidth=2, label=f"Cluster {k}", color=colors_L6[k])
+
+plt.title(f"Distribution of {var} by Cluster")
+plt.xlabel(var)
+plt.legend()
+plt.show()
+
+
